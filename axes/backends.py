@@ -40,14 +40,14 @@ class AxesModelBackend(ModelBackend):
             error_msg = get_lockout_message(request, context)
             response_context = kwargs.get('response_context', {})
             response_context['error'] = error_msg
-
-            # FIXME: If ANY attempts for username
-            #   need to be counted (valid and invalid) on
-            #   AXES_FAILURE_LIMIT_MAX_BY_USER, then uncomment the code below.
-
-            # username = get_client_username(request)
-            # if settings.AXES_FAILURE_LIMIT_MAX_BY_USER:
-            #     UserAccessFailureLog.create_or_update(username)
             raise PermissionDenied(error_msg)
 
         # No-op
+
+    def get_all_permissions(self, user_obj, obj=None):
+        return set()
+
+
+class M3AxesModelBackend(AxesModelBackend):
+    def get_all_permissions(self, user_obj, obj=None):
+        return set()
