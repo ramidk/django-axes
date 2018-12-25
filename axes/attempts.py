@@ -157,6 +157,10 @@ def reset_user_attempts(request):
     attempts = _query_user_attempts(request)
     count, _ = attempts.delete()
 
+    username = get_client_username(request)
+    failure_logs = UserAccessFailureLog.objects.filter(username=username)
+    failure_logs.delete()
+
     return count
 
 
@@ -203,6 +207,42 @@ def is_user_lockable(request):
 
     # Default behavior for a user to be lockable
     return True
+
+
+def get_user(request):
+    """Returns user by username from request or None.
+    """
+    if request.method != 'POST':
+        return
+
+    username = get_client_username(request)
+    if not username:
+        return
+
+    try:
+        field = getattr(get_user_model(), 'USERNAME_FIELD', 'username')
+        kwargs = {
+            field: username
+        }
+        return get_user_model().objects.get(**kwargs)
+
+    except get_user_model().DoesNotExist:
+        return
+
+
+def is_user_locked(request):
+    """Checks if user is marked as locked in DB."""
+    user = get_user(request)
+
+    IS_AUTO_LOCKED = 'is_auto_locked'
+
+    if not user:
+        return False
+
+    if not hasattr(user, IS_AUTO_LOCKED):
+        return False
+
+    return getattr(user, IS_AUTO_LOCKED)
 
 
 @set_priority_message
@@ -253,6 +293,10 @@ def is_already_locked(request):
         return False, context
 
     if settings.AXES_FAILURE_LIMIT_MAX_BY_USER:
+        if is_user_locked(request):
+            context['messages_codes'].append(1006)
+            return True, context
+
         try:
             failure_log = UserAccessFailureLog.objects.get(username=username)
         except UserAccessFailureLog.DoesNotExist:

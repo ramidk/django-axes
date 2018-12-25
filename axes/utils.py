@@ -118,6 +118,7 @@ def reset(ip=None, username=None):
     failure_logs = UserAccessFailureLog.objects.all()
     if ip:
         attempts = attempts.filter(ip_address=ip)
+        failure_logs = failure_logs.none()
     if username:
         attempts = attempts.filter(username=username)
         failure_logs = failure_logs.filter(username=username)
@@ -172,7 +173,7 @@ def get_lockout_message(request, context=None):
             'cooloff_time': get_axes_cool_off(cool_off),
         })
 
-    log.debug('Msg code: %d' % context.get('code'))
+    log.debug('Msg code: %s' % context.get('code'))
     msg = context.pop('message')
     str_msg = msg.format(**context)
     # log.debug('Msg description: %s' % str_msg)
